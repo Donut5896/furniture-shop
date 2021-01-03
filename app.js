@@ -5,7 +5,7 @@ const closeCartBtn = document.querySelector('.close-cart');
 const clearCartBtn = document.querySelector('.clear-cart');
 const cartDOM = document.querySelector('.cart');
 const cartOverlay = document.querySelector('.cart-overlay');
-const cartItem = document.querySelector('.cart-item');
+const cartItems = document.querySelector('.cart-items');
 const cartTotal = document.querySelector('.cart-total');
 const cartContent = document.querySelector('.cart-content');
 const productsDOM = document.querySelector('.products-center');
@@ -14,8 +14,8 @@ const productsDOM = document.querySelector('.products-center');
 
 // cart 
 let cart = [];
-
-
+//5.remove buttons in cart
+let buttonsDOM = [];
 
 // 1.getting the products
 class Products{
@@ -60,24 +60,100 @@ class UI{
      });
      productsDOM.innerHTML = result;
     }
+
     //get bag btns
     getBagButtons(){
         //4. add to cart button
         const buttons = [...document.querySelectorAll(".bag-btn")];
+        buttonsDOM = buttons;
+
         buttons.forEach(button => {
-            //get data-id of products
+            //5.get data-id of products
             let id = button.dataset.id;
-            // find items in the cart and check if item.id matches local.id 
+            // find items in the cart and check if item.id matches data.id 
             let inCart = cart.find(item => item.id === id);
+
+            // disabled the add to cart button from fire twice
+            if(inCart){
+                button.innerText = "In Cart";
+                button.disabled = true;
+            }
+            button.addEventListener('click', event => {
+                event.target.innerText  = "In Cart";
+                event.target.disabled = true;
+
+
+            //6.get matches product.id from local storage
+            let cartItem = {...Storage.getProduct(id), amount:1}; // add amount property
+            
+             // 7.add product to the cart
+            cart = [...cart, cartItem];
+            console.log(cart);
+             //8.save cart in local storage
+             Storage.saveCart(cart)
+            //9.set cart value
+            this.setCartValues(cart);
+            //10.display cart item
+            this.addCartItem(cartItem);
+            //show the cart lists when adding
+
+            });
+            
+        });
+    
+    }
+     //9.set cart value
+    setCartValues(cart){
+        let tempTotal = 0;
+        let itemsTotal = 0;
+        cart.map(item => {
+            tempTotal += item.price * item.amount;
+            itemsTotal += item.amount;
         })
+        cartTotal.innerText = parseFloat(tempTotal.toFixed(2));
+        cartItems.innerText = itemsTotal;
+        
+    }
+    //10.display cart item
+    addCartItem(item){
+        const div = document.createElement('div');
+        div.classList.add('cart-item');
+        div.innerHTML = `
+                    <img src=${item.image} alt="product">
+                    <div>
+                        <h4>${item.title}</h4>
+                        <h5>$${item.price}</h5>
+                        <span class="remove-item" data-id=${item.id}>remove</span>
+                    </div>
+                    <div>
+                        <i class="fa fa-chevron-up" data-id=${item.id}></i>
+                        <p class="item-amount">${item.amount}</p>
+                        <i class="fa fa-chevron-down" data-id=${item.id}></i>
+                    </div> `;
+                     // append to div to html cartContent
+                    cartContent.appendChild(div);
+                    console.log( cartContent);
     }
 }
+   
 
 //3. local storage
 class Storage{
     static saveProducts(products){
+        //change data object to string
         localStorage.setItem("products", JSON.stringify(products)
         );
+    }
+    static getProduct(id){
+        //6. request data from localstorage and change from string to object
+        let products = JSON.parse(localStorage.getItem('products'));
+        //then find the product.id that matches with the passed id 
+        return products.find(product => product.id === id)
+
+    }
+    //8.save cart in local storage
+    static saveCart(cart){
+        localStorage.setItem("cart", JSON.stringify(cart));
     }
 }
 
