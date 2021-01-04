@@ -95,8 +95,8 @@ class UI{
             this.setCartValues(cart);
             //10.display cart item
             this.addCartItem(cartItem);
-            //show the cart lists when adding
-
+            //12.show the cart lists when adding
+            this.showCart();
             });
             
         });
@@ -130,10 +130,110 @@ class UI{
                         <p class="item-amount">${item.amount}</p>
                         <i class="fa fa-chevron-down" data-id=${item.id}></i>
                     </div> `;
-                     // append to div to html cartContent
-                    cartContent.appendChild(div);
-                    console.log( cartContent);
+    //11. append to div to html cartContent
+    cartContent.appendChild(div);
+                   
     }
+    //12.show the cart lists when adding
+    showCart(){
+        cartOverlay.classList.add('transparentBcg');
+        cartDOM.classList.add('showCart');
+    }
+    //13. setup app (while loading, if there were some items then add those to the cart array)
+    setupApp(){
+        cart = Storage.getCart();
+        //update cart value and cart item in notification
+        this.setCartValues(cart);
+        //14.add old item to cart
+        this.populateCart(cart);
+        //15.show cart when loaded
+        cartBtn.addEventListener('click', this.showCart);
+        //16.close cart button
+        closeCartBtn.addEventListener('click', this.hideCart);
+    }
+    //14.add old item to cart
+    populateCart(cart){
+        cart.forEach(item => this.addCartItem(item));
+
+    }
+     //16.close cart button
+     hideCart(){
+        cartOverlay.classList.remove('transparentBcg');
+        cartDOM.classList.remove('showCart');
+     }
+     //17.cart logic setup
+     cartLogic(){
+         //clear cart
+        clearCartBtn.addEventListener('click', () => {
+            this.clearCart();
+        });
+        //18.cart functionality 
+        cartContent.addEventListener('click', event => {
+            //--remove button function--
+            if(event.target.classList.contains('remove-item')){
+                //remove item by get data-id
+                let removeItem = event.target; 
+                let id = removeItem.dataset.id;
+                //remove items from DOM
+                cartContent.removeChild
+                (removeItem.parentElement.parentElement);
+                //remove items from class Content
+                this.removeItem(id);
+              
+            } //19. increase and decrease button
+            else if(event.target.classList.contains('fa-chevron-up')){
+                let addAmount = event.target;
+                let id = addAmount.dataset.id;
+                let tempItem = cart.find(item => item.id === id);
+                tempItem.amount = tempItem.amount + 1;
+                Storage.saveCart(cart);
+                this.setCartValues(cart);
+                //update item-amount
+                addAmount.nextElementSibling.innerText =
+                tempItem.amount;
+            }
+            else if(event.target.classList.contains('fa-chevron-down')){
+                let lowerAmount = event.target;
+                let id = lowerAmount.dataset.id;
+                let tempItem = cart.find(item => item.id === id);
+                tempItem.amount = tempItem.amount - 1;
+                
+                if(tempItem.amount > 0){
+                    Storage.saveCart(cart);
+                    this.setCartValues(cart);
+                    lowerAmount.previousElementSibling.innerText = 
+                    tempItem.amount;
+                }else{
+                    cartContent.removeChild(lowerAmount.parentElement.parentElement);
+                    this.removeItem(id);
+                }
+            }
+        })
+     }
+     clearCart(){
+         //get item id on the cart and remove
+         let cartItems = cart.map(item => item.id);
+        cartItems.forEach(id => this.removeItem(id))
+        console.log(cartContent.children);
+        //remove items from the DOM
+        while(cartContent.children.length>0){
+            cartContent.removeChild(cartContent.children[0])
+        }
+        this.hideCart();
+     }
+     removeItem(id){
+         cart = cart.filter(item => item.id !== id);
+         this.setCartValues(cart); //cart value = 0
+         Storage.saveCart(cart);
+         //reset add to cart buttons
+         let button = this.getSingleButton(id);
+         button.disabled = false;
+         button.innerHTML = `<i class="fa 
+         fa-shopping-cart"></i>add to cart`;
+     }
+     getSingleButton(id){
+         return buttonsDOM.find(button => button.dataset.id === id);
+     }
 }
    
 
@@ -155,6 +255,13 @@ class Storage{
     static saveCart(cart){
         localStorage.setItem("cart", JSON.stringify(cart));
     }
+    // 13. set up app
+    static getCart(){
+        //check if the item in storage exist (if user had added any items) 
+        //if yes then get the item if bot get empty array
+        return localStorage.getItem('cart')?JSON.parse
+        (localStorage.getItem('cart')): []
+    }
 }
 
 
@@ -162,13 +269,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const ui = new UI()
     const products = new Products();
 
+    //13. set up app
+    ui.setupApp();
 
     //1,2,3,4. get all products 
     products.getProducts().then(products => {
     ui.displayProducts(products);
     Storage.saveProducts(products)
-    }).then( () => {
+    })
+    .then( () => {
     ui.getBagButtons();
+    //17. cart logic
+    ui.cartLogic();
     });
 
 
